@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${outing.title})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('list')}"></header>
+<div class="app with-guide">
+  <aside class="side">
+    <p class="side-title">計画</p>
+    <ul class="side-nav">
+      <li><a href="#top" aria-current="page"><i class="ico i-calcheck"></i>計画詳細</a></li>
+      <li><a href="#schedule"><i class="ico i-clock"></i>予定表</a></li>
+      <li><a href="#items"><i class="ico i-list"></i>持ち物リスト</a></li>
+      <li><a href="#favorites"><i class="ico i-heart"></i>お気に入り</a></li>
+      <li><a th:href="@{/outings/{id}/shiori(id=${outing.id})}"><i class="ico i-book"></i>おでかけしおり</a></li>
+    </ul>
+    <hr>
+    <ul class="side-nav"><li><a th:href="@{/outings}"><i class="ico i-back"></i>計画一覧に戻る</a></li></ul>
+  </aside>
+
+  <main class="main" id="top"><div class="content" id="detail" th:attr="data-outing-id=${outing.id}">
+    <p class="breadcrumb"><a th:href="@{/}">ホーム</a> ＞ <a th:href="@{/outings}">計画一覧</a> ＞ <span th:text="${outing.title}"></span></p>
+    <section class="page-hero hero-detail">
+      <span class="kind" th:classappend="${outing.kindKey()}"><i class="ico" th:classappend="|i-${outing.icon()}|"></i><span th:text="${outing.category}"></span></span>
+      <h1 style="margin-top:8px"><span class="brush" th:text="${outing.title}">タイトル</span></h1>
+      <p style="margin-top:14px"><a class="btn" th:href="@{/outings/{id}/shiori(id=${outing.id})}"><i class="ico i-book"></i>おでかけしおりを見る</a></p>
+      <dl class="facts">
+        <div><dt><i class="ico i-pin"></i>行き先</dt><dd th:text="${outing.destination}"></dd></div>
+        <div><dt><i class="ico i-cal"></i>日付</dt><dd th:text="${#temporals.format(outing.outingDate, 'yyyy年M月d日（E）')}"></dd></div>
+        <div><dt><i class="ico i-people"></i>人数</dt><dd th:text="|${outing.participants}人|"></dd></div>
+        <div class="countdown memory" th:if="${daysLeft < 0}"><i class="ico i-cal"></i>思い出</div>
+        <div class="countdown today" th:if="${daysLeft == 0}"><i class="ico i-cal"></i><em>今日！</em></div>
+        <div class="countdown" th:if="${daysLeft > 0}"><i class="ico i-cal"></i>出発まで あと<em th:text="${daysLeft}">3</em>日！</div>
+      </dl>
+    </section>
+
+    <!-- 上の段：計画情報（やりたいこと）｜予定表（どちらも再読み込みなしで追加・削除） -->
+    <div class="grid-2">
+      <section class="panel">
+        <div class="panel-head"><h2><i class="ico i-list"></i>計画情報</h2>
+          <a class="btn btn-outline btn-sm" th:href="@{/outings/{id}/edit(id=${outing.id})}"><i class="ico i-pen"></i>編集する</a></div>
+        <dl class="info-rows">
+          <div><dt><i class="ico" th:classappend="|i-${outing.icon()}|"></i>種類</dt><dd th:text="${outing.category}"></dd></div>
+          <div><dt><i class="ico i-pen"></i>メモ</dt><dd style="white-space:pre-wrap" th:text="${outing.memo ?: 'なし'}"></dd></div>
+        </dl>
+        <div class="panel-head" style="margin:16px 0 6px"><h2 style="font-size:1.05rem"><i class="ico i-flag"></i>やりたいこと</h2></div>
+        <ul class="wish-edit" id="wish-list">
+          <li th:each="w : ${wishes}" th:attr="data-wish-id=${w.id}"><span class="text" th:text="${w.content}"></span><button type="button" class="link-btn delete-wish">削除</button></li>
+        </ul>
+        <p class="empty" id="wish-empty" th:hidden="${!#lists.isEmpty(wishes)}">まだありません。やりたいことを追加しましょう。</p>
+        <div class="add-row"><input type="text" id="new-wish" maxlength="100" placeholder="例：星空をながめる" aria-label="やりたいこと"><button class="btn btn-sm" type="button" id="add-wish">追加</button></div>
+        <p class="api-error" id="wish-error" aria-live="polite"></p>
+      </section>
+
+      <section class="panel" id="schedule">
+        <div class="panel-head"><h2><i class="ico i-clock"></i>予定表</h2><span class="sub">時間は空欄でもOK。時間のある予定は早い順に並びます</span></div>
+        <ul class="schedule" id="schedule-list">
+          <li th:each="sc : ${schedules}" th:classappend="${sc.startTime == null} ? 'undecided'" th:attr="data-schedule-id=${sc.id}">
+            <time th:text="${sc.startTime != null} ? ${#temporals.format(sc.startTime, 'HH:mm')} : '時間未定'"></time>
+            <span th:text="${sc.content}"></span>
+            <span class="place" th:text="${sc.place}"></span>
+            <button class="link-btn delete-schedule" type="button">削除</button>
+          </li>
+        </ul>
+        <p class="empty" id="schedule-empty" th:hidden="${!#lists.isEmpty(schedules)}">まだ予定がありません。</p>
+        <div class="add-row schedule-add">
+          <input type="time" id="new-time" aria-label="時間（なくてもOK）" style="max-width:8em">
+          <input type="text" id="new-content" maxlength="100" placeholder="やること（例：焚き火）" aria-label="やること">
+          <input type="text" id="new-place" maxlength="100" placeholder="場所（なくてもOK）" aria-label="場所">
+          <button class="btn btn-sm" type="button" id="add-schedule">追加</button>
+        </div>
+        <p class="api-error" id="schedule-error" aria-live="polite"></p>
+      </section>
+    </div>
+
+    <!-- 持ち物リスト（全幅）：チェックしていない持ち物は「お店で買う」か「別で準備」を選ぶ -->
+    <section class="panel" id="items">
+      <div class="panel-head"><h2><i class="ico i-list"></i>持ち物リスト</h2>
+        <span class="sub" id="item-summary" th:text="|${#lists.size(items)}件（準備済み${preparedCount}件／未準備${#lists.size(items) - preparedCount}件）|"></span>
+        <button class="btn btn-outline btn-sm" type="button" data-open="tpl-dialog"><i class="ico i-plus"></i>テンプレートから追加</button></div>
+      <p class="tpl-note" style="margin:0 0 8px">準備できたら「済」を押してね。まだのものは、下の「DEPOの商品で準備しよう」で「DEPOで買う」か「別で準備」を決めてね（決まっていないものは色が付いています）。</p>
+      <ul class="checklist" id="checklist">
+        <li th:each="it : ${items}" th:attr="data-item-id=${it.id},data-prep=${it.prepMethod ?: ''},data-has-product=${it.productId != null}"
+            th:classappend="${(it.prepared ? 'done ' : '') + (it.undecided() ? 'undecided' : '')}">
+          <input type="checkbox" class="stamp" th:id="|item-${it.id}|" th:checked="${it.prepared}" th:attr="aria-label=|${it.name}の準備が済んだ|">
+          <label class="name" th:for="|item-${it.id}|" th:text="${it.name}"></label>
+          <!-- 用意のしかた（表示だけ。決めるのは「DEPO商品一覧を見る」の先の画面） -->
+          <span class="prep-tag"
+                th:classappend="${it.prepared} ? 'done' : (${it.byOther()} ? 'other' : (${it.byStore() and it.productId != null} ? 'store' : 'none'))"
+                th:text="${it.prepared} ? '準備完了！' : (${it.byOther()} ? '別で準備する' : (${it.byStore() and it.productId != null} ? 'DEPOで商品を選択した' : 'まだ決まっていない'))"
+                th:attr="title=${it.productName != null} ? ${it.productName} : null"></span>
+          <span class="qty" aria-label="個数">
+            <button type="button" class="qty-minus" th:attr="aria-label=|${it.name}を1つへらす|">−</button>
+            <span class="qty-num" th:text="${it.quantity}">1</span>
+            <button type="button" class="qty-plus" th:attr="aria-label=|${it.name}を1つふやす|">＋</button>
+          </span>
+          <button class="del delete-item" type="button" th:attr="aria-label=|${it.name}を削除|">削除</button>
+        </li>
+      </ul>
+      <p class="empty" id="item-empty" th:hidden="${!#lists.isEmpty(items)}">まだ持ち物がありません。下の欄から追加するか、テンプレートから選んでください。</p>
+      <div class="add-row">
+        <input type="text" id="new-item" list="item-suggest" maxlength="100" placeholder="持ち物を入れる…" aria-label="持ち物">
+        <input type="number" id="new-qty" min="1" max="99" value="1" aria-label="個数" style="max-width:5.5em">
+        <button class="btn btn-sm" type="button" id="add-item">追加</button></div>
+      <datalist id="item-suggest"><option th:each="n : ${suggestions}" th:value="${n}"></option></datalist>
+      <p class="api-error" id="item-error" aria-live="polite"></p>
+
+      <!-- おすすめの上に「DEPO商品一覧を見る」 -->
+      <p class="depo-link"><a class="btn btn-lg cta-pulse" th:href="@{/outings/{id}/products(id=${outing.id})}"><i class="ico i-bag"></i>DEPOの商品で準備しよう<span class="cta-arrow" aria-hidden="true">›</span></a></p>
+
+      <th:block th:if="${!#lists.isEmpty(recommendProducts) or !#lists.isEmpty(recommendOthers)}">
+        <div class="panel-head" style="margin-top:4px"><h2 style="font-size:1rem"><span class="mark">おすすめ</span><span th:text="|${outing.category}にはこんなものも|"></span></h2></div>
+        <div class="recommend">
+          <div class="rec-item" th:each="r : ${recommendOthers}"><strong th:text="${r.name}"></strong>
+            <small th:text="|ほかの${outing.category}の計画で${r.count}件|"></small>
+            <button class="btn btn-outline btn-sm" type="button" th:attr="data-add-item=${r.name}">持ち物に追加</button></div>
+          <div class="rec-item" th:each="p : ${recommendProducts}"><strong th:text="${p.name}"></strong>
+            <small th:text="|${#numbers.formatInteger(p.price, 1, 'COMMA')}円・${p.description}|"></small>
+            <button class="btn btn-outline btn-sm" type="button" th:attr="data-add-item=${p.name}">持ち物に追加</button></div>
+        </div>
+      </th:block>
+    </section>
+
+    <section class="panel" id="favorites" style="margin-top:20px">
+      <div class="panel-head"><h2><i class="ico i-heart"></i>お気に入り</h2><span class="sub">お気に入りの商品を、この計画の買い物リストに入れられます</span>
+        <a class="btn btn-outline btn-sm" th:href="@{/outings/{id}/products(id=${outing.id})}"><i class="ico i-bag"></i>DEPO商品一覧で探す</a></div>
+      <p class="empty" th:if="${#lists.isEmpty(favorites)}">まだありません。DEPO商品一覧の商品のハートを押すと、ここに入ります。</p>
+      <div class="fav-grid">
+        <div class="fav-item" th:each="p : ${favorites}">
+          <strong th:text="${p.name}"></strong>
+          <small th:text="|${#numbers.formatInteger(p.price, 1, 'COMMA')}円・${p.description}|"></small>
+          <div class="card-buttons">
+            <form method="post" data-keep-scroll th:action="@{/outings/{id}/products/{pid}/add(id=${outing.id}, pid=${p.id})}"><input type="hidden" name="back" value="detail">
+              <button class="btn btn-sm" type="submit"><i class="ico i-cart"></i>買い物リストに入れる</button></form>
+            <form method="post" data-keep-scroll th:action="@{/outings/{id}/favorites/{pid}(id=${outing.id}, pid=${p.id})}"><input type="hidden" name="back" value="detail">
+              <button class="link-btn" type="submit">外す</button></form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <dialog class="modal" id="tpl-dialog" aria-labelledby="tpl-dialog-title">
+      <form method="post" th:action="@{/outings/{id}/items/template(id=${outing.id})}">
+        <div class="modal-head"><h2 id="tpl-dialog-title"><i class="ico i-list"></i>テンプレートから追加</h2><button class="close-btn" type="button" data-close aria-label="閉じる">✕</button></div>
+        <p class="tpl-note" style="margin-top:0" th:text="|「${outing.category}」のテンプレートです。必要なものにチェックして、まとめて持ち物リストに追加します。|"></p>
+        <ul class="tpl-list">
+          <th:block th:each="t, st : ${templateRows}">
+          <li class="tpl-group" th:if="${st.index == 0 or templateRows[st.index - 1].group != t.group}" th:text="${t.group}"></li>
+          <li>
+            <input type="checkbox" name="names" th:id="|tpl-${st.index}|" th:value="${t.name}" th:disabled="${t.have}">
+            <label th:for="|tpl-${st.index}|" th:text="${t.name}"></label><span class="have" th:if="${t.have}">（追加ずみ）</span>
+          </li>
+          </th:block>
+        </ul>
+        <div class="modal-actions"><button class="btn btn-outline btn-sm" type="button" data-close>やめる</button><button class="btn btn-sm" type="submit">まとめて追加</button></div>
+      </form>
+    </dialog>
+  </div></main>
+
+  <!-- 右：案内人のでぽんた（スクロールしても一緒に動く）。準備の進み具合を案内する -->
+  <aside class="guide-col">
+    <div th:replace="~{fragments/tanuki :: tanuki(${tanukiLines})}"></div>
+  </aside>
+</div>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+<script th:src="@{/js/odekake-ui.js}"></script>
+<script th:src="@{/js/detail.js}"></script>
+</body>
+</html>

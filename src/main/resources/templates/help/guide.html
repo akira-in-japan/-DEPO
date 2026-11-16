@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('使い方ガイド')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('')}"></header>
+<main class="main narrow"><div class="content">
+  <section class="page-hero hero-help">
+    <h1><i class="ico i-book"></i><span class="brush">使い方ガイド</span></h1>
+    <p>おでかけDEPO で、計画づくりから準備、お店での買いものまでの流れを紹介します。</p>
+  </section>
+  <ol class="guide-steps">
+    <li><h2>計画をつくる</h2><p>「計画をつくる」から、タイトル・日付・行き先・人数・種類を入れます。やりたいことやメモも書けます。</p></li>
+    <li><h2>持ち物を準備する</h2><p>計画詳細の「持ち物リスト」に持ち物を追加します。「テンプレートから追加」を使うと早く入れられます。準備できたらチェックを付けます。個数は −／＋ で変えられます。</p></li>
+    <li><h2>足りないものはお店で</h2><p>チェックが付いていない持ち物は、自動で「買い物リスト」に入ります。「お店の商品を選ぶ」から、おでかけDEPO の商品を選ぶと、合計金額がわかります。</p></li>
+    <li><h2>予定を立てる</h2><p>「予定表」に、時間とやることを入れます。時間が決まっていなくても大丈夫です。</p></li>
+    <li><h2>しおりを見る・共有する</h2><p>「おでかけしおりを見る」で、予定と持ち物をまとめたしおりが見られます。印刷・PDF 保存や、URL・QR コードでの共有もできます。</p></li>
+    <li><h2>思い出を残す</h2><p>日付が過ぎた計画は「思い出」になります。写真や動画をアップロードして共有できます（7日で自動的に消えます）。</p></li>
+  </ol>
+  <p><a class="btn" th:href="@{/outings/new}">さっそく計画をつくる</a></p>
+</div></main>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+</body>
+</html>

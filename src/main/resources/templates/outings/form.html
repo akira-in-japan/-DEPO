@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: headWithCss(${editing == null} ? '新しい計画をつくる' : '計画を編集する', 'https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header(${editing == null} ? 'new' : 'list')}"></header>
+<div class="app">
+  <!-- 左：広告スペース（将来ここに広告を出す。今は空けておく）。以前のホーム・計画一覧などのメニューは上のヘッダーにあるので外した -->
+  <aside class="side">
+    <div class="ad-slot" aria-hidden="true"></div>
+  </aside>
+
+  <main class="main"><div class="content">
+    <section class="page-hero hero-form">
+      <div th:replace="~{fragments/layout :: depotaTitle(${editing == null} ? '新しい計画をつくる' : '計画を編集する')}"></div>
+      <p th:if="${editing == null}">行き先・日付・やりたいことを決めて、あなただけのおでかけ計画をつくりましょう。</p>
+      <p th:if="${editing != null}">「<span th:text="${editing.title}"></span>」の内容を直せます。やりたいことや持ち物は、計画詳細の画面で追加・削除できます。</p>
+      <p class="bubble" style="max-width:20em;margin-top:12px" th:if="${editing == null}">むずかしくないので、気軽に入力してくださいね。あとから編集もできます。</p>
+    </section>
+
+    <div class="form-layout">
+      <form class="form-card" id="outing-form" method="post" novalidate th:object="${outingForm}"
+            th:action="${editing == null} ? @{/outings} : @{/outings/{id}/edit(id=${editing.id})}">
+        <p class="flash-error" th:if="${#fields.hasErrors('*')}" style="margin-top:16px">入力内容にまちがいがあります。赤い文字のところを直してください。</p>
+
+        <section class="step">
+          <span class="step-no"><small>STEP</small>1</span>
+          <h2>基本の情報を入れましょう</h2>
+          <div class="field"><label for="title"><i class="ico i-pen"></i>タイトル<span class="req">＊</span></label>
+            <input type="text" th:field="*{title}" data-guide="おでかけに名前をつけよう！「家族で春のピクニック」みたいに、わかりやすい名前がいいよ" maxlength="100" placeholder="例：春の湖畔キャンプ／家族で日帰りピクニック"></div>
+          <p class="error-text" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></p>
+          <div class="field"><label for="outingDate"><i class="ico i-cal"></i>日付<span class="req">＊</span></label>
+            <input type="text" class="date-input" data-guide="カレンダーから日付をえらんでね。今日より前の日は選べないよ" th:field="*{outingDate}" placeholder="カレンダーから選ぶ" autocomplete="off"
+                   th:attr="data-min=${editing == null} ? ${today} : null"></div>
+          <p class="error-text" th:if="${#fields.hasErrors('outingDate')}" th:errors="*{outingDate}"></p>
+          <div class="field"><label for="destination"><i class="ico i-pin"></i>行き先<span class="req">＊</span></label>
+            <input type="text" th:field="*{destination}" data-guide="どこに行くのかな？公園やキャンプ場の名前を書いてね" maxlength="100" placeholder="例：富士五湖、○○公園"></div>
+          <p class="error-text" th:if="${#fields.hasErrors('destination')}" th:errors="*{destination}"></p>
+          <div class="field"><label for="participants"><i class="ico i-people"></i>人数<span class="req">＊</span></label>
+            <div><span class="stepper"><button type="button" aria-label="1人へらす">−</button><input type="number" th:field="*{participants}" data-guide="何人で行くか教えてね。−と＋のボタンでも変えられるよ" min="1" aria-label="人数"><button type="button" aria-label="1人ふやす">＋</button></span> 人</div></div>
+          <p class="error-text" th:if="${#fields.hasErrors('participants')}" th:errors="*{participants}"></p>
+        </section>
+
+        <section class="step">
+          <span class="step-no"><small>STEP</small>2</span>
+          <h2>おでかけの種類を選びましょう</h2>
+          <div class="field"><span class="label"><i class="ico i-flag"></i>種類<span class="req">＊</span></span>
+            <div class="kind-select" role="radiogroup" aria-label="おでかけの種類" data-guide="キャンプ・旅行・ピクニックから選んでね。選んだ種類に合わせて、あとでおすすめの商品を出すよ">
+              <label><input type="radio" th:field="*{category}" value="キャンプ"><span><i class="ico i-tent"></i>キャンプ</span></label>
+              <label><input type="radio" th:field="*{category}" value="旅行"><span><i class="ico i-suitcase"></i>旅行</span></label>
+              <label><input type="radio" th:field="*{category}" value="ピクニック"><span><i class="ico i-basket"></i>ピクニック</span></label>
+            </div></div>
+          <p class="error-text" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></p>
+        </section>
+
+        <section class="step">
+          <span class="step-no"><small>STEP</small>3</span>
+          <h2 th:text="${editing == null} ? 'やりたいこととメモを書きましょう' : 'メモ'">やりたいこととメモを書きましょう</h2>
+          <div class="field" th:if="${editing == null}"><span class="label"><i class="ico i-list"></i>やりたいこと</span>
+            <div>
+              <div class="wish-inputs" id="wish-inputs" data-guide="やりたいことを1つずつ書いてね。「やりたいことを追加」で欄が増えるよ">
+                <div class="row" th:each="w, st : *{wishes}"><input type="text" name="wishes" th:value="${w}" maxlength="100" aria-label="やりたいこと"></div>
+                <div class="row" th:if="${#lists.isEmpty(outingForm.wishes)}"><input type="text" name="wishes" maxlength="100" placeholder="例：テントを張る" aria-label="やりたいこと"></div>
+              </div>
+              <button class="btn btn-outline btn-sm" type="button" id="add-wish" style="margin-top:8px"><i class="ico i-plus"></i>やりたいことを追加</button>
+            </div>
+          </div>
+          <p class="error-text" th:if="${#fields.hasErrors('wishes*')}" th:errors="*{wishes*}"></p>
+          <div class="field"><label for="memo"><i class="ico i-pen"></i>メモ</label>
+            <textarea data-guide="忘れたくないことをメモしておこう。しおりにも出るよ" th:field="*{memo}" rows="3" maxlength="500" placeholder="例：防寒対策を忘れずに！ ゴミは持ち帰り"></textarea></div>
+          <p class="error-text" th:if="${#fields.hasErrors('memo')}" th:errors="*{memo}"></p>
+        </section>
+
+        <div class="form-actions">
+          <a class="btn btn-outline btn-lg" th:if="${editing != null}" th:href="@{/outings/{id}(id=${editing.id})}">やめる</a>
+          <button class="btn btn-lg" type="submit"><i class="ico i-flag"></i><span th:text="${editing == null} ? 'この内容でつくる' : '保存する'">この内容でつくる</span></button>
+        </div>
+      </form>
+
+      <!-- 右側：狸が使い方を説明する。入力している欄に合わせてセリフが変わる（odekake-ui.js） -->
+      <aside class="guide-side">
+        <div th:replace="~{fragments/tanuki :: tanuki(${guideLines})}"></div>
+      </aside>
+    </div>
+  </div></main>
+</div>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+<!-- 日付のカレンダー（flatpickr）。パソコンの和暦の設定に関係なく、いつも西暦で表示する -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/ja.min.js"></script>
+<script th:src="@{/js/odekake-ui.js}"></script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('管理者ページ')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('')}"></header>
+<div class="app">
+  <aside class="side">
+    <p class="side-title">管理者ページ</p>
+    <ul class="side-nav">
+      <li><a href="#ranking"><i class="ico i-chart"></i>ランキング</a></li>
+      <li><a href="#aliases"><i class="ico i-list"></i>言いかえの辞書</a></li>
+      <li><a href="#themes"><i class="ico i-flag"></i>特集・テーマ</a></li>
+      <li><a href="#products"><i class="ico i-bag"></i>商品</a></li>
+    </ul>
+    <hr>
+    <ul class="side-nav"><li><a th:href="@{/mypage}"><i class="ico i-back"></i>マイページに戻る</a></li></ul>
+    <div class="side-note"><strong>保守担当・お店のスタッフ向け</strong>個々の計画の中身は表示していません。</div>
+  </aside>
+  <main class="main"><div class="content">
+    <section class="page-hero hero-admin">
+      <h1><i class="ico i-chart"></i><span class="brush">管理者ページ</span></h1>
+      <p>お客さんがよく持っていくもののランキング、似た名前をまとめる言いかえの辞書、DEPO商品一覧の特集と商品を管理します。</p>
+    </section>
+    <p th:if="${message != null}" th:class="${isError} ? 'flash-error' : 'done-msg'" th:text="${message}" role="status"></p>
+
+    <!-- 1. ランキング -->
+    <section class="panel" id="ranking">
+      <div class="panel-head"><h2><i class="ico i-chart"></i>よく持っていくもの</h2>
+        <span class="sub">書き方の違いと、言いかえの辞書でまとめて数えています</span></div>
+      <div class="chips" role="group" aria-label="お店の商品であるかで絞り込む" style="margin-bottom:10px">
+        <a class="chip" th:href="@{/admin}" th:attr="aria-current=${filter == 'all'} ? 'page' : null">すべて</a>
+        <a class="chip" th:href="@{/admin(filter='instore')} + '#ranking'" th:attr="aria-current=${filter == 'instore'} ? 'page' : null">お店に商品あり</a>
+        <a class="chip" th:href="@{/admin(filter='nostore')} + '#ranking'" th:attr="aria-current=${filter == 'nostore'} ? 'page' : null">お店に商品なし（入荷の候補）</a>
+      </div>
+      <p class="empty" th:if="${#lists.isEmpty(ranking)}">表示するデータがありません。</p>
+      <table class="rank-table" th:unless="${#lists.isEmpty(ranking)}">
+        <thead><tr><th scope="col">順位</th><th scope="col">持ち物</th><th scope="col">お店の商品</th><th scope="col" style="text-align:right">件数</th></tr></thead>
+        <tbody>
+          <tr th:each="r, st : ${ranking}" th:classappend="${st.count <= 3} ? 'tr-top'">
+            <td><span class="rank-no" th:text="${st.count}">1</span></td>
+            <td><span th:text="${r.name}"></span><small class="breakdown" th:if="${r.merged()}" th:text="|（${r.breakdown}を含む）|"></small></td>
+            <td><span class="instore" th:if="${r.inStore()}" th:text="|あり（${r.productName}）|"></span><span class="nostore" th:unless="${r.inStore()}">お店に商品なし</span></td>
+            <td class="num" th:text="|${r.count}件|"></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 2. 言いかえの辞書 -->
+    <section class="panel" id="aliases" style="margin-top:20px">
+      <div class="panel-head"><h2><i class="ico i-list"></i>言いかえの辞書</h2><span class="sub">まとめる単語を、代表の名前として数えます</span></div>
+      <form class="admin-form" method="post" th:action="@{/admin/aliases}">
+        <label>まとめる単語<input type="text" name="aliasName" maxlength="100" placeholder="例：マイボトル"></label>
+        <label>代表の名前<input type="text" name="canonical" maxlength="100" placeholder="例：水筒"></label>
+        <button class="btn btn-sm" type="submit"><i class="ico i-plus"></i>登録する</button>
+      </form>
+      <p class="empty" th:if="${#lists.isEmpty(aliases)}">まだ登録されていません。</p>
+      <table class="rank-table" th:unless="${#lists.isEmpty(aliases)}">
+        <thead><tr><th scope="col">まとめる単語</th><th scope="col">代表の名前</th><th scope="col">登録日</th><th scope="col">編集</th></tr></thead>
+        <tbody>
+          <tr th:each="a : ${aliases}">
+            <td th:text="${a.aliasName}"></td>
+            <td><strong th:text="${a.canonicalName}"></strong></td>
+            <td th:text="${#temporals.format(a.createdAt, 'yyyy/M/d')}"></td>
+            <td>
+              <details class="edit-box">
+                <summary>編集</summary>
+                <form class="admin-form" method="post" th:action="@{/admin/aliases/{id}/edit(id=${a.id})}">
+                  <label>まとめる単語<input type="text" name="aliasName" maxlength="100" th:value="${a.aliasName}"></label>
+                  <label>代表の名前<input type="text" name="canonical" maxlength="100" th:value="${a.canonicalName}"></label>
+                  <button class="btn btn-sm" type="submit">保存する</button>
+                </form>
+                <form class="inline-form" method="post" th:action="@{/admin/aliases/{id}/delete(id=${a.id})}"
+                      th:attr="data-confirm=|「${a.aliasName}」の言いかえを削除しますか？|">
+                  <button class="link-btn" type="submit">削除する</button></form>
+              </details>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 3. 特集・テーマ -->
+    <section class="panel" id="themes" style="margin-top:20px">
+      <div class="panel-head"><h2><i class="ico i-flag"></i>特集・テーマ</h2><span class="sub">DEPO商品一覧の「特集・テーマ」に表示されます。商品はチェックした順ではなく、一覧の順に並びます</span></div>
+      <p class="empty" th:if="${#lists.isEmpty(themes)}">特集はまだありません。</p>
+      <details class="edit-box theme-edit" th:each="t : ${themes}">
+        <summary><strong th:text="${t.title}"></strong>（<span th:text="${#lists.size(t.productIds)}"></span>件）<small th:text="${t.description}"></small></summary>
+        <form method="post" th:action="@{/admin/themes/{id}/edit(id=${t.id})}">
+          <div class="admin-form">
+            <label>タイトル<input type="text" name="title" maxlength="50" th:value="${t.title}"></label>
+            <label class="wide">説明<input type="text" name="description" maxlength="200" th:value="${t.description}"></label>
+          </div>
+          <fieldset class="product-picks"><legend>入れる商品</legend>
+            <label th:each="p : ${products}"><input type="checkbox" name="productIds" th:value="${p.id}" th:checked="${t.productIds.contains(p.id)}">
+              <span th:text="|${p.name}（${p.category}）|"></span></label>
+          </fieldset>
+          <button class="btn btn-sm" type="submit">保存する</button>
+        </form>
+        <form class="inline-form" method="post" th:action="@{/admin/themes/{id}/delete(id=${t.id})}" th:attr="data-confirm=|特集「${t.title}」を削除しますか？|">
+          <button class="link-btn" type="submit">この特集を削除する</button></form>
+      </details>
+      <details class="edit-box theme-edit">
+        <summary><i class="ico i-plus"></i>新しい特集を追加する</summary>
+        <form method="post" th:action="@{/admin/themes}">
+          <div class="admin-form">
+            <label>タイトル<input type="text" name="title" maxlength="50" placeholder="例：夏の川あそび"></label>
+            <label class="wide">説明<input type="text" name="description" maxlength="200" placeholder="例：水辺で1日たのしむためのアイテム"></label>
+          </div>
+          <fieldset class="product-picks"><legend>入れる商品</legend>
+            <label th:each="p : ${products}"><input type="checkbox" name="productIds" th:value="${p.id}">
+              <span th:text="|${p.name}（${p.category}）|"></span></label>
+          </fieldset>
+          <button class="btn btn-sm" type="submit">追加する</button>
+        </form>
+      </details>
+    </section>
+
+    <!-- 4. 商品（追加・変更。在庫数は「在庫確認」ボタンに使う） -->
+    <section class="panel" id="products" style="margin-top:20px">
+      <div class="panel-head"><h2><i class="ico i-bag"></i>商品</h2><span class="sub" th:text="|${#lists.size(products)}件。在庫数を空にすると「在庫情報なし」になります|"></span></div>
+      <details class="edit-box theme-edit">
+        <summary><i class="ico i-plus"></i>新しい商品を追加する</summary>
+        <form method="post" th:action="@{/admin/products}" class="admin-form">
+          <label>商品名<input type="text" name="name" maxlength="100" placeholder="例：折りたたみテーブル"></label>
+          <label>種類<select name="category"><option th:each="c : ${categories}" th:value="${c}" th:text="${c}" th:selected="false"></option></select></label>
+          <label>値段（円）<input type="text" name="price" inputmode="numeric" maxlength="7" placeholder="例：5980"></label>
+          <label>在庫数<input type="text" name="stock" inputmode="numeric" maxlength="5" placeholder="例：12（空でもよい）"></label>
+          <label class="wide">説明<input type="text" name="description" maxlength="255" placeholder="例：たためて軽い、2人用"></label>
+          <button class="btn btn-sm" type="submit">追加する</button>
+        </form>
+      </details>
+      <table class="rank-table">
+        <thead><tr><th scope="col">商品</th><th scope="col">種類</th><th scope="col" style="text-align:right">値段</th><th scope="col" style="text-align:right">在庫</th><th scope="col">編集</th></tr></thead>
+        <tbody>
+          <tr th:each="p : ${products}">
+            <td><strong th:text="${p.name}"></strong><small class="breakdown" th:text="${p.description}"></small></td>
+            <td th:text="${p.category}"></td>
+            <td class="num" th:text="|${#numbers.formatInteger(p.price, 1, 'COMMA')}円|"></td>
+            <td class="num" th:text="${p.stock != null} ? |${p.stock}個| : '－'"></td>
+            <td>
+              <details class="edit-box">
+                <summary>編集</summary>
+                <form method="post" th:action="@{/admin/products/{id}/edit(id=${p.id})}" class="admin-form">
+                  <label>商品名<input type="text" name="name" maxlength="100" th:value="${p.name}"></label>
+                  <label>種類<select name="category"><option th:each="c : ${categories}" th:value="${c}" th:text="${c}" th:selected="${c == p.category}"></option></select></label>
+                  <label>値段（円）<input type="text" name="price" inputmode="numeric" maxlength="7" th:value="${p.price}"></label>
+                  <label>在庫数<input type="text" name="stock" inputmode="numeric" maxlength="5" th:value="${p.stock}"></label>
+                  <label class="wide">説明<input type="text" name="description" maxlength="255" th:value="${p.description}"></label>
+                  <button class="btn btn-sm" type="submit">保存する</button>
+                </form>
+              </details>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div></main>
+</div>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+<script th:src="@{/js/odekake-ui.js}"></script>
+</body>
+</html>

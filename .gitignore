@@ -1,0 +1,16 @@
+target/
+*.class
+*.log
+src/main/resources/application-local.properties
+.env
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.sts4-cache/
+.DS_Store
+Thumbs.db
+odekake-depo-uploads/

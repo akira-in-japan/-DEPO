@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 計画カード（これから・思い出で共通） -->
+<!-- say：狸がこのカードについて話すセリフ（マウスを乗せる・タップしたとき） -->
+<article th:fragment="planCard(s, say)" class="plan-card" th:classappend="${s.outing.kindKey()}" th:attr="data-kind=${s.outing.kindKey()},data-say=${say}">
+  <div class="plan-visual">
+    <span class="kind" th:classappend="${s.outing.kindKey()}"><i class="ico" th:classappend="|i-${s.outing.icon()}|"></i><span th:text="${s.outing.category}">キャンプ</span></span>
+    <i class="ico big" aria-hidden="true" th:classappend="|i-${s.outing.icon()}|"></i>
+  </div>
+  <div class="plan-body">
+    <h3 th:text="${s.outing.title}">タイトル</h3>
+    <p class="meta"><i class="ico i-pin"></i><span th:text="${s.outing.destination}">行き先</span></p>
+    <p class="meta"><i class="ico i-cal"></i><span th:text="${#temporals.format(s.outing.outingDate, 'yyyy年M月d日（E）')}">日付</span></p>
+    <p class="meta"><i class="ico i-people"></i><span th:text="|${s.outing.participants}人|">人数</span></p>
+    <span class="countdown memory" th:if="${s.memory}"><i class="ico i-cal"></i>思い出</span>
+    <span class="countdown today" th:if="${s.today}"><i class="ico i-cal"></i><em>今日！</em></span>
+    <span class="countdown" th:if="${!s.memory and !s.today}"><i class="ico i-cal"></i>あと<em th:text="${s.daysLeft}">3</em>日！</span>
+    <div class="progress-label"><span>準備の進み具合</span><span th:text="|${s.progress()}%|">0%</span></div>
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="準備の進み具合"
+         th:attr="aria-valuenow=${s.progress()}"><span th:style="|width:${s.progress()}%|"></span></div>
+    <div class="card-actions">
+      <a class="btn btn-outline btn-sm" th:if="${!s.memory}" th:href="@{/outings/{id}(id=${s.outing.id})}"><i class="ico i-pen"></i>計画を開く</a>
+      <a class="btn btn-outline btn-sm" th:if="${s.memory}" th:href="@{/outings/{id}/memory(id=${s.outing.id})}"><i class="ico i-book"></i>思い出を開く</a>
+      <form class="inline-form" method="post" th:action="@{/outings/{id}/delete(id=${s.outing.id})}"
+            data-confirm="この計画と持ち物・予定・やりたいことを削除します。よろしいですか？">
+        <button class="btn btn-outline btn-sm" type="submit">削除</button>
+      </form>
+    </div>
+  </div>
+</article>
+</body>
+</html>

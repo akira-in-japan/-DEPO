@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('ホーム')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+<main>
+  <section class="home-hero">
+    <h1>おでかけの準備を<br>もっと<span class="scribble">簡単</span>に、もっと<span class="scribble fun">楽しく</span></h1>
+    <p>おでかけDEPOは、旅行・キャンプ・ピクニックなどの計画から、持ち物の準備、お店での買いものまでをサポートするアプリです。</p>
+    <div class="actions">
+      <!-- 押してほしいボタン：ふわっと弾み、矢印が右に動き、光の輪が広がる -->
+      <a class="btn btn-lg cta-pulse" th:href="@{/outings/new}">さっそく計画をつくる<span class="cta-arrow" aria-hidden="true">›</span></a>
+      <a class="btn btn-outline btn-lg" th:href="@{/guide}">使い方を見る</a>
+    </div>
+  </section>
+  <div class="wave" aria-hidden="true"></div>
+
+  <!-- でぽんたの自己紹介 -->
+  <section class="depota-hello" aria-label="でぽんたの自己紹介">
+    <div th:replace="~{fragments/tanuki :: tanuki(${introLines})}"></div>
+    <div class="depota-hello-text">
+      <h2>はじめまして、<strong>でぽんた</strong>だよ！</h2>
+      <p>おでかけDEPO の案内係のたぬきです。計画をつくるところから、持ち物の準備、お店での買いものまで、最後まで一緒に案内するよ。一緒に楽しい思い出をつくっていこうね！</p>
+      <p class="tpl-note">でぽんたをタップすると、ジャンプしてお話しするよ。</p>
+    </div>
+  </section>
+</main>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+<script th:src="@{/js/odekake-ui.js}"></script>
+</body>
+</html>

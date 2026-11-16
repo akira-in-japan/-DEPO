@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('DEPO商品一覧')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('items')}"></header>
+<div class="app with-guide">
+  <!-- 左側：表示の切りかえ -->
+  <aside class="side">
+    <ul class="side-nav">
+      <li><a th:href="@{/products}" th:attr="aria-current=${view == 'all'} ? 'page' : null"><i class="ico i-bag"></i>DEPO商品一覧</a></li>
+      <li><a th:href="@{/products(view='recommend')}" th:attr="aria-current=${view == 'recommend'} ? 'page' : null"><i class="ico i-spark"></i>おすすめ</a></li>
+      <li><a th:href="@{/products(view='theme')}" th:attr="aria-current=${view == 'theme'} ? 'page' : null"><i class="ico i-flag"></i>特集・テーマ</a></li>
+      <li><a th:href="@{/products(view='favorites')}" th:attr="aria-current=${view == 'favorites'} ? 'page' : null"><i class="ico i-heart"></i>お気に入り</a></li>
+      <li><a th:href="@{/products(view='shopping')}" th:attr="aria-current=${view == 'shopping'} ? 'page' : null"><i class="ico i-cart"></i>買うものリスト</a></li>
+      <li><a th:href="@{/products(view='history')}" th:attr="aria-current=${view == 'history'} ? 'page' : null"><i class="ico i-list"></i>購入履歴</a></li>
+    </ul>
+  </aside>
+
+  <main class="main"><div class="content">
+    <section class="page-hero hero-products">
+      <div th:replace="~{fragments/layout :: depotaTitle('DEPO商品一覧')}"></div>
+      <p>キャンプ、旅行、ピクニックなど、さまざまなお出かけシーンで活躍するアイテムを集めました。計画に合わせて、必要なものを見つけて準備をもっと楽に、楽しく！</p>
+    </section>
+
+    <!-- キーワード検索（角の丸い検索ボックス） -->
+    <form class="search-box" method="get" th:action="@{/products}" role="search">
+      <i class="ico i-search" aria-hidden="true"></i>
+      <label for="q" class="sr-only">アイテムをキーワードで探す</label>
+      <input type="search" id="q" name="q" th:value="${q}" placeholder="アイテム名・キーワードで探す（例：テント、クーラーボックス）" maxlength="50">
+      <button class="btn" type="submit">検索</button>
+    </form>
+
+    <!-- 種類のボタン（ロゴつき。選ぶと種類の色になる） -->
+    <div class="chips cat-chips" role="group" aria-label="種類でしぼりこむ" th:unless="${view == 'shopping' or view == 'history'}">
+      <span>カテゴリー：</span>
+      <a class="chip" th:href="@{/products(view=${view == 'search' ? null : view}, q=${q != '' ? q : null}, theme=${currentTheme?.id})}"
+         th:attr="aria-current=${selectedCategory == ''} ? 'page' : null"><i class="ico i-grid"></i>すべて</a>
+      <a class="chip cat-camp" th:href="@{/products(view=${view == 'search' ? null : view}, q=${q != '' ? q : null}, theme=${currentTheme?.id}, category='キャンプ')}"
+         th:attr="aria-current=${selectedCategory == 'キャンプ'} ? 'page' : null"><i class="ico i-tent"></i>キャンプ</a>
+      <a class="chip cat-travel" th:href="@{/products(view=${view == 'search' ? null : view}, q=${q != '' ? q : null}, theme=${currentTheme?.id}, category='旅行')}"
+         th:attr="aria-current=${selectedCategory == '旅行'} ? 'page' : null"><i class="ico i-suitcase"></i>旅行</a>
+      <a class="chip cat-picnic" th:href="@{/products(view=${view == 'search' ? null : view}, q=${q != '' ? q : null}, theme=${currentTheme?.id}, category='ピクニック')}"
+         th:attr="aria-current=${selectedCategory == 'ピクニック'} ? 'page' : null"><i class="ico i-basket"></i>ピクニック</a>
+    </div>
+    <p class="done-msg" th:if="${doneMessage != null}" th:text="${doneMessage}" role="status"></p>
+
+    <!-- 特集：テーマのカード -->
+    <div class="theme-grid" th:if="${view == 'theme'}">
+      <p class="empty" th:if="${#lists.isEmpty(themes)}">特集はまだありません。</p>
+      <a class="theme-card" th:each="t : ${themes}" th:href="@{/products(view='theme', theme=${t.id})}"
+         th:classappend="${currentTheme != null and currentTheme.id == t.id} ? 'on'">
+        <strong th:text="${t.title}"></strong><small th:text="${t.description}"></small></a>
+    </div>
+
+    <div class="section-title"><h2><i class="ico i-grid"></i><span th:text="${heading}">商品一覧</span></h2>
+      <p th:unless="${view == 'shopping' or view == 'history'}">全 <span th:text="${#lists.size(products)}"></span> 件</p></div>
+
+    <!-- 買うものリスト：これからの計画ごと -->
+    <th:block th:if="${view == 'shopping'}">
+      <p class="empty" th:if="${#maps.isEmpty(shoppingLists)}">これからの計画がありません。</p>
+      <section class="panel" style="margin-bottom:16px" th:each="e : ${shoppingLists}">
+        <div class="panel-head"><h2><i class="ico" th:classappend="|i-${e.key.outing.icon()}|"></i><span th:text="${e.key.outing.title}"></span></h2>
+          <span class="sub" th:text="${#temporals.format(e.key.outing.outingDate, 'yyyy年M月d日（E）')}"></span>
+          <a class="btn btn-outline btn-sm" th:href="@{/outings/{id}/products(id=${e.key.outing.id})}">商品を選ぶ</a></div>
+        <p class="empty" th:if="${#lists.isEmpty(e.value)}">DEPOで買う商品はまだありません。</p>
+        <ul class="shop-list">
+          <li th:each="it : ${e.value}" th:classappend="${it.prepared} ? 'bought'" style="grid-template-columns:64px 1fr auto">
+            <span class="thumb" th:classappend="${e.key.outing.kindKey()}"><i class="ico i-bag"></i></span>
+            <div><div class="pname"><span th:text="${it.productName ?: it.name}"></span><span class="badge-bought" th:if="${it.prepared}">買った</span></div>
+              <div class="for" th:text="|持ち物：${it.name}　×${it.quantity}|"></div></div>
+            <span class="price" th:text="|${#numbers.formatInteger(it.subtotal(), 1, 'COMMA')}円|"></span>
+          </li>
+        </ul>
+        <div class="total-bar" th:unless="${#lists.isEmpty(e.value)}"><span><i class="ico i-cart"></i> 合計金額</span>
+          <strong th:text="|${#numbers.formatInteger(shoppingTotals[e.key.outing.id], 1, 'COMMA')}円|"></strong></div>
+      </section>
+    </th:block>
+
+    <!-- 購入履歴：買った（商品を選んでチェックを付けた）もの -->
+    <th:block th:if="${view == 'history'}">
+      <p class="tpl-note">商品を選んでチェックを付けた（買った）ものの一覧です。ログイン機能がないため、すべての計画のものを表示しています。</p>
+      <section class="panel">
+        <p class="empty" th:if="${#lists.isEmpty(history)}">まだ購入したものはありません。</p>
+        <table class="rank-table" th:unless="${#lists.isEmpty(history)}">
+          <thead><tr><th scope="col">商品</th><th scope="col">計画</th><th scope="col">日付</th><th scope="col" style="text-align:right">金額</th></tr></thead>
+          <tbody>
+            <tr th:each="h : ${history}">
+              <td th:text="|${h[0].productName} ×${h[0].quantity}|"></td>
+              <td th:text="${h[1]}"></td>
+              <td th:text="${#temporals.format(h[2], 'yyyy/M/d')}"></td>
+              <td class="num" th:text="|${#numbers.formatInteger(h[0].subtotal(), 1, 'COMMA')}円|"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </th:block>
+
+    <!-- 商品カード（見るだけ。右上のハートでお気に入り） -->
+    <p class="empty" th:if="${view != 'shopping' and view != 'history' and #lists.isEmpty(products)}"
+       th:text="${view == 'search'} ? '見つかりませんでした。ほかのことばで探してみてください。' : (${view == 'favorites'} ? 'お気に入りはまだありません。商品の右上のハートを押すとここに入ります。' : (${view == 'recommend'} ? 'まだよく選ばれている商品はありません。' : '表示する商品がありません。'))"></p>
+    <div class="product-grid" th:unless="${view == 'shopping' or view == 'history'}">
+      <article class="product" th:each="p : ${products}" th:attr="data-say=${productSays[p.id]}">
+        <span class="thumb" th:classappend="${p.category == 'キャンプ'} ? 'camp' : (${p.category == '旅行'} ? 'travel' : 'picnic')"><i class="ico i-bag"></i></span>
+        <div><span class="kind" th:text="${p.category}"></span>
+          <h3 th:text="${p.name}"></h3><p th:text="${p.description}"></p>
+          <div class="price" th:text="|${#numbers.formatInteger(p.price, 1, 'COMMA')}円|"></div>
+          <div class="stock-row">
+            <button type="button" class="stock-btn" th:attr="data-stock-label=${p.stockLabel()},data-stock=${p.stock}">在庫確認</button>
+            <span class="stock-result" hidden aria-live="polite"></span>
+          </div></div>
+        <form class="fav-corner" method="post" th:action="@{/products/{pid}/favorite(pid=${p.id})}">
+          <input type="hidden" name="view" th:value="${view == 'search'} ? 'all' : ${view}">
+          <input type="hidden" name="theme" th:if="${currentTheme != null}" th:value="${currentTheme.id}">
+          <input type="hidden" name="q" th:value="${q}">
+          <input type="hidden" name="category" th:value="${selectedCategory}">
+          <button class="heart-btn" type="submit" th:classappend="${favoriteIds.contains(p.id)} ? 'on'"
+                  th:attr="aria-label=${favoriteIds.contains(p.id)} ? |${p.name}をお気に入りから外す| : |${p.name}をお気に入りに入れる|,aria-pressed=${favoriteIds.contains(p.id)}">
+            <i class="ico" th:classappend="${favoriteIds.contains(p.id)} ? 'i-heart-fill' : 'i-heart'"></i></button>
+        </form>
+      </article>
+    </div>
+  </div></main>
+  <!-- 右：案内人のでぽんた（スクロールしても一緒に動く） -->
+  <aside class="guide-col">
+    <div th:replace="~{fragments/tanuki :: tanuki(${tanukiLines})}"></div>
+  </aside>
+</div>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+<script th:src="@{/js/odekake-ui.js}"></script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|お店の商品を選ぶ（${outing.title}）|)}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('items')}"></header>
+<div class="app select-app with-guide">
+  <!-- 左（スクロールしても固定）：まだ準備できていない持ち物ごとに「お店で買う」か「別で準備する」を決める -->
+  <aside class="side sticky-side" aria-label="まだ準備できていない持ち物">
+    <p class="side-title">まだ準備できていない持ち物</p>
+    <p class="prep-summary" th:if="${!#lists.isEmpty(unprepared)}" th:classappend="${undecidedCount == 0} ? 'ok'"
+       th:text="${undecidedCount == 0} ? 'ぜんぶ決まったね！' : |決まっていない持ち物：あと${undecidedCount}つ|"></p>
+    <p class="empty" th:if="${#lists.isEmpty(unprepared)}" style="margin:0 12px">DEPOで決めることは残っていません。</p>
+    <table class="prep-table" data-keep-scroll-links th:unless="${#lists.isEmpty(unprepared)}">
+      <thead><tr><th scope="col">持ち物</th><th scope="col">用意のしかた</th></tr></thead>
+      <tbody>
+        <tr th:each="it : ${unprepared}" th:classappend="${(it.undecided() ? 'undecided ' : '') + (selectedItem != null and selectedItem.id == it.id ? 'selected' : '')}">
+          <td>
+            <a th:href="@{/outings/{id}/products(id=${outing.id}, itemId=${it.id}, category=${selectedCategory != '' ? selectedCategory : null})}"
+               th:text="|${it.name} ×${it.quantity}|"></a>
+            <small class="picked" th:if="${it.productName != null}" th:text="${it.productName}"></small>
+            <small class="unpicked" th:if="${it.byStore() and it.productName == null}">商品を選んでね</small>
+            <small class="other" th:if="${it.byOther()}">別で準備する</small>
+            <small class="unpicked" th:if="${it.prepMethod == null}">どちらか選んでね</small>
+          </td>
+          <td class="prep-choice">
+            <form method="post" data-keep-scroll th:action="@{/outings/{id}/items/{iid}/prep(id=${outing.id}, iid=${it.id})}">
+              <input type="hidden" name="method" value="store"><input type="hidden" name="category" th:value="${selectedCategory}">
+              <button type="submit" class="prep-btn" th:classappend="${it.byStore()} ? 'on'" th:attr="aria-pressed=${it.byStore()}">DEPOで買う</button>
+            </form>
+            <form method="post" data-keep-scroll th:action="@{/outings/{id}/items/{iid}/prep(id=${outing.id}, iid=${it.id})}">
+              <input type="hidden" name="method" value="other"><input type="hidden" name="category" th:value="${selectedCategory}">
+              <button type="submit" class="prep-btn other" th:classappend="${it.byOther()} ? 'on'" th:attr="aria-pressed=${it.byOther()}">別で準備</button>
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- 「別で準備」にした持ち物は一覧から外し、ここにまとめる（まちがえたときは DEPO で買うに戻せる） -->
+    <details class="other-box" th:unless="${#lists.isEmpty(otherItems)}">
+      <summary th:text="|別で準備するもの（${#lists.size(otherItems)}）|">別で準備するもの</summary>
+      <ul class="other-list">
+        <li th:each="it : ${otherItems}">
+          <span th:text="|${it.name} ×${it.quantity}|"></span>
+          <form method="post" data-keep-scroll th:action="@{/outings/{id}/items/{iid}/prep(id=${outing.id}, iid=${it.id})}">
+            <input type="hidden" name="method" value="store"><input type="hidden" name="category" th:value="${selectedCategory}">
+            <button type="submit" class="link-btn">DEPOで買うに戻す</button>
+          </form>
+        </li>
+      </ul>
+    </details>
+    <hr>
+    <ul class="side-nav"><li><a th:href="@{/outings/{id}(id=${outing.id})}"><i class="ico i-back"></i>計画に戻る</a></li></ul>
+  </aside>
+
+  <main class="main"><div class="content">
+    <section class="page-hero hero-products">
+      <div th:replace="~{fragments/layout :: depotaTitle('お店の商品を選ぶ')}"></div>
+      <p th:text="|${outing.title}（${outing.category}）。気になる商品はそのまま買い物リストに入れたり、ハートでお気に入りにとっておけます。|"></p>
+    </section>
+    <p class="flash-error" th:if="${errorMessage != null}" th:text="${errorMessage}"></p>
+    <!-- 持ち物の用意のしかたがぜんぶ決まったら、でぽんたが次にすることを案内する（以前はここでエラー画面になっていた） -->
+    <section class="done-guide" th:if="${allDecided}" role="status">
+      <picture><source th:srcset="@{/images/tanuki/happy.webp}" type="image/webp"><img th:src="@{/images/tanuki/happy.png}" alt="" width="96" height="96"></picture>
+      <div>
+        <p class="done-title">ぜんぶ決まったよ！</p>
+        <p>このままDEPOの商品を見るか、計画に戻ってしおりを作ってみよう。</p>
+        <div class="done-actions">
+          <a class="btn btn-outline" th:href="@{/products}"><i class="ico i-bag"></i>DEPO商品一覧を見る</a>
+          <a class="btn" th:href="@{/outings/{id}(id=${outing.id})}"><i class="ico i-back"></i>計画に戻ってしおりを作る</a>
+        </div>
+      </div>
+    </section>
+    <p class="hint" th:if="${selectedItem != null}">「<strong th:text="${selectedItem.name}"></strong>」に合う商品の「「<span th:text="${selectedItem.name}"></span>」用に選ぶ」を押してください。DEPO にないときは、左で「別で準備」を選んでください</p>
+
+    <!-- 商品の検索（角の丸い検索ボックス）。選んでいる持ち物と種類はそのまま -->
+    <form class="search-box" method="get" th:action="@{/outings/{id}/products(id=${outing.id})}" role="search" data-keep-scroll>
+      <i class="ico i-search" aria-hidden="true"></i>
+      <label for="q" class="sr-only">商品をキーワードで探す</label>
+      <input type="search" id="q" name="q" th:value="${q}" placeholder="商品名・キーワードで探す（例：テント、水筒）" maxlength="50">
+      <input type="hidden" name="itemId" th:value="${selectedItem?.id}">
+      <input type="hidden" name="category" th:value="${selectedCategory}">
+      <button class="btn" type="submit">検索</button>
+    </form>
+    <p class="hint" th:if="${q != ''}"><span th:text="|「${q}」の検索結果：${#lists.size(products)}件|"></span>
+      <a th:href="@{/outings/{id}/products(id=${outing.id}, itemId=${selectedItem?.id}, category=${selectedCategory != '' ? selectedCategory : null})}">検索をやめる</a></p>
+    <p class="empty" th:if="${q != '' and #lists.isEmpty(products)}">見つかりませんでした。ほかのことばで探してみてください。</p>
+    <div class="chips" role="group" aria-label="種類でしぼりこむ" data-keep-scroll-links>
+      <span>種類：</span>
+      <a class="chip" th:href="@{/outings/{id}/products(id=${outing.id}, itemId=${selectedItem?.id})}" th:attr="aria-current=${selectedCategory == ''} ? 'page' : null">すべて</a>
+      <a class="chip" th:each="c : ${categories}" th:text="${c}"
+         th:href="@{/outings/{id}/products(id=${outing.id}, category=${c}, itemId=${selectedItem?.id})}"
+         th:attr="aria-current=${selectedCategory == c} ? 'page' : null"></a>
+    </div>
+
+    <div class="product-grid" style="margin-top:16px">
+      <article class="product" th:each="p : ${products}" th:classappend="${p.category == outing.category} ? 'featured'" th:attr="data-say=${productSays[p.id]}">
+        <span class="thumb" th:classappend="${p.category == 'キャンプ'} ? 'camp' : (${p.category == '旅行'} ? 'travel' : 'picnic')"><i class="ico i-bag"></i></span>
+        <span class="mark" th:if="${p.category == outing.category}">おすすめ</span>
+        <div><span class="kind" th:text="${p.category}"></span>
+          <h3 th:text="${p.name}"></h3><p th:text="${p.description}"></p>
+          <div class="price" th:text="|${#numbers.formatInteger(p.price, 1, 'COMMA')}円|"></div>
+          <div class="stock-row">
+            <button type="button" class="stock-btn" th:attr="data-stock-label=${p.stockLabel()},data-stock=${p.stock}">在庫確認</button>
+            <span class="stock-result" hidden aria-live="polite"></span>
+          </div>
+          <div class="card-buttons">
+            <!-- 選んだ持ち物にこの商品をひも付ける -->
+            <form th:if="${selectedItem != null}" method="post" data-keep-scroll
+                  th:action="@{/outings/{id}/items/{itemId}/product(id=${outing.id}, itemId=${selectedItem.id})}">
+              <input type="hidden" name="productId" th:value="${p.id}">
+              <input type="hidden" name="category" th:value="${selectedCategory}">
+              <button type="submit" class="btn btn-sm" th:text="|「${selectedItem.name}」用に選ぶ|">用に選ぶ</button>
+            </form>
+            <!-- これも買う：持ち物を選ばずに、商品をそのまま買う持ち物として入れる -->
+            <form method="post" data-keep-scroll th:action="@{/outings/{id}/products/{pid}/add(id=${outing.id}, pid=${p.id})}">
+              <input type="hidden" name="category" th:value="${selectedCategory}">
+              <input type="hidden" name="itemId" th:value="${selectedItem?.id}">
+              <button type="submit" class="btn btn-outline btn-sm"><i class="ico i-cart"></i>これも買う</button>
+            </form>
+
+          </div>
+        </div>
+        <!-- お気に入り（ブラウザごと）：カードの右上に固定 -->
+        <form class="fav-corner" method="post" data-keep-scroll th:action="@{/outings/{id}/favorites/{pid}(id=${outing.id}, pid=${p.id})}">
+          <input type="hidden" name="category" th:value="${selectedCategory}">
+          <input type="hidden" name="itemId" th:value="${selectedItem?.id}">
+          <button type="submit" class="heart-btn" th:classappend="${favoriteIds.contains(p.id)} ? 'on'"
+                  th:attr="aria-label=${favoriteIds.contains(p.id)} ? |${p.name}をお気に入りから外す| : |${p.name}をお気に入りに入れる|,aria-pressed=${favoriteIds.contains(p.id)}">
+            <i class="ico" th:classappend="${favoriteIds.contains(p.id)} ? 'i-heart-fill' : 'i-heart'"></i></button>
+        </form>
+      </article>
+    </div>
+
+    <!-- 下の買い物リスト：DEPOで買う商品だけ、金額と合計 -->
+    <section class="panel" style="margin-top:22px">
+      <div class="panel-head"><h2><i class="ico i-cart"></i>DEPOで買うもの</h2><span class="sub" th:text="|${#lists.size(depoList)}件|"></span></div>
+      <p class="empty" th:if="${#lists.isEmpty(depoList)}">まだ選んだ商品はありません。</p>
+      <ul class="shop-list">
+        <li th:each="it : ${depoList}" th:classappend="${it.prepared} ? 'bought'" style="grid-template-columns:64px 1fr auto">
+          <span class="thumb" th:classappend="${outing.kindKey()}"><i class="ico i-bag"></i></span>
+          <div><div class="pname"><span th:text="${it.productName}"></span><span class="badge-bought" th:if="${it.prepared}">買った</span></div>
+            <div class="for" th:text="|持ち物：${it.name}　${#numbers.formatInteger(it.productPrice, 1, 'COMMA')}円 × ${it.quantity}|"></div></div>
+          <span class="price" th:text="|${#numbers.formatInteger(it.subtotal(), 1, 'COMMA')}円|"></span>
+        </li>
+      </ul>
+      <div class="total-bar"><span><i class="ico i-cart"></i> 合計金額</span><strong th:text="|${#numbers.formatInteger(total, 1, 'COMMA')}円|"></strong></div>
+    </section>
+  </div></main>
+  <!-- 右：案内人のでぽんた（スクロールしても一緒に動く） -->
+  <aside class="guide-col">
+    <div th:replace="~{fragments/tanuki :: tanuki(${tanukiLines})}"></div>
+  </aside>
+</div>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+<script th:src="@{/js/odekake-ui.js}"></script>
+</body>
+</html>

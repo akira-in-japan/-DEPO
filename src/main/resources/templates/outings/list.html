@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('計画一覧')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('list')}"></header>
+<div class="app with-guide">
+  <aside class="side side-welcome">
+    <!-- 広告スペース（将来ここに広告を出す。今は空けておく）。以前の「ようこそ○○さん」は表示しない -->
+    <div class="ad-slot" aria-hidden="true"></div>
+    <!-- 左下：使い方ガイド・よくある質問 -->
+    <ul class="side-nav side-bottom">
+      <li><a th:href="@{/guide}"><i class="ico i-book"></i>使い方ガイド</a></li>
+      <li><a th:href="@{/faq}"><i class="ico i-flag"></i>よくある質問</a></li>
+    </ul>
+  </aside>
+
+  <main class="main"><div class="content">
+    <section class="page-hero hero-list">
+      <div th:replace="~{fragments/layout :: depotaTitle('おでかけの計画一覧')}"></div>
+      <p>これからの計画と思い出をまとめて見られます。計画を開いて編集したり、思い出に写真や動画をアップロードして共有したりできます。</p>
+    </section>
+
+    <nav class="tabs" aria-label="種類でしぼりこむ">
+      <a href="#" data-filter="all" aria-current="page"><i class="ico i-grid"></i>すべて（<span th:text="${#lists.size(upcoming)}">0</span>）</a>
+      <a href="#" data-filter="camp"><i class="ico i-tent"></i>キャンプ（<span th:text="${kindCounts['camp'] ?: 0}">0</span>）</a>
+      <a href="#" data-filter="travel"><i class="ico i-suitcase"></i>旅行（<span th:text="${kindCounts['travel'] ?: 0}">0</span>）</a>
+      <a href="#" data-filter="picnic"><i class="ico i-basket"></i>ピクニック（<span th:text="${kindCounts['picnic'] ?: 0}">0</span>）</a>
+    </nav>
+
+    <div class="toolbar"><span>これからの計画 <strong id="plan-count" th:text="${#lists.size(upcoming)}">0</strong> 件</span><span>出発の近い順</span></div>
+    <p class="empty" th:if="${#lists.isEmpty(upcoming)}">これからの計画はありません。上のメニューの「計画をつくる」から始めましょう。</p>
+    <div class="plan-grid" id="plan-list">
+      <th:block th:each="s : ${upcoming}"><article th:replace="~{fragments/cards :: planCard(${s}, ${cardSays[s.outing.id]})}"></article></th:block>
+    </div>
+
+    <div class="toolbar" style="margin-top:34px"><span>思い出 <strong th:text="${#lists.size(memories)}">0</strong> 件</span><span>新しい順</span></div>
+    <p class="empty" th:if="${#lists.isEmpty(memories)}">過去の計画はまだありません。</p>
+    <div class="plan-grid">
+      <th:block th:each="s : ${memories}"><article th:replace="~{fragments/cards :: planCard(${s}, ${cardSays[s.outing.id]})}"></article></th:block>
+    </div>
+  </div></main>
+  <!-- 右：案内人のでぽんた（スクロールしても一緒に動く） -->
+  <aside class="guide-col">
+    <div th:replace="~{fragments/tanuki :: tanuki(${tanukiLines})}"></div>
+  </aside>
+</div>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+
+<script th:src="@{/js/odekake-ui.js}"></script>
+</body>
+</html>

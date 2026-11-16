@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|おでかけしおり（${outing.title}）|)}"></head>
+<body>
+<th:block th:unless="${mode == 'shared'}"><header th:replace="~{fragments/layout :: header('list')}"></header></th:block>
+<div class="app" style="grid-template-columns:1fr">
+
+  <main class="main shiori-main" id="top"><div class="content">
+    <div class="shiori-top">
+      <div>
+        <a class="back-link no-print" th:if="${mode == 'plan'}" th:href="@{/outings/{id}(id=${outing.id})}"><i class="ico i-back"></i>計画の詳細に戻る</a>
+        <a class="back-link no-print" th:if="${mode == 'memory'}" th:href="@{/outings}"><i class="ico i-back"></i>計画一覧に戻る</a>
+        <h1><i class="ico i-book"></i><span class="brush" th:text="${mode == 'memory'} ? 'おでかけの思い出' : 'おでかけしおり'">おでかけしおり</span></h1>
+        <p th:text="${mode == 'memory'} ? 'しおりを振り返ったり、写真や動画をみんなで共有したりできます。' : '当日の予定や持ち物をまとめた、おでかけのガイドブックです。'"></p>
+      </div>
+      <div class="photo" th:classappend="${outing.kindKey()}" role="img" th:attr="aria-label=|${outing.category}のイメージ写真|"></div>
+    </div>
+
+    <section class="shiori-title">
+      <h2><i class="ico" th:classappend="|i-${outing.icon()}|"></i><span th:text="${outing.title}"></span></h2>
+      <span class="kind" th:classappend="${outing.kindKey()}" th:style="|background:var(--${outing.kindKey()})|" th:text="${outing.category}"></span>
+      <div class="actions no-print">
+        <a class="btn btn-outline btn-sm" th:if="${mode == 'plan'}" th:href="@{/outings/{id}/edit(id=${outing.id})}"><i class="ico i-pen"></i>編集</a>
+        <button class="btn btn-outline btn-sm" type="button" onclick="window.print()"><i class="ico i-download"></i>印刷・PDFで保存</button>
+        <button class="btn btn-sm" type="button" th:if="${mode != 'shared'}" data-open="share-dialog"><i class="ico i-share"></i>URL・QRで共有</button>
+      </div>
+      <div class="metas">
+        <span class="meta"><i class="ico i-cal"></i><span th:text="${#temporals.format(outing.outingDate, 'yyyy年M月d日（E）')}"></span></span>
+        <span class="meta"><i class="ico i-pin"></i><span th:text="${outing.destination}"></span></span>
+        <span class="meta"><i class="ico i-people"></i><span th:text="|${outing.participants}人|"></span></span>
+      </div>
+    </section>
+
+    <div class="shiori-flow">
+      <section class="panel">
+        <div class="panel-head"><h2><i class="ico i-cal"></i>当日のスケジュール</h2><span class="sub">時間の早い順。時間が決まっていない予定は最後に表示</span></div>
+        <p class="empty" th:if="${#lists.isEmpty(schedules)}">予定はまだありません。</p>
+        <ol class="timeline">
+          <li th:each="sc : ${schedules}" th:classappend="${sc.startTime == null} ? 'undecided'">
+            <time th:text="${sc.startTime != null} ? ${#temporals.format(sc.startTime, 'HH:mm')} : '時間未定'"></time>
+            <div class="what"><strong th:text="${sc.content}"></strong><span th:if="${sc.place}" th:text="${sc.place}"></span></div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2><i class="ico i-list"></i>持ち物リスト</h2>
+          <span class="mini-progress">準備の進み具合 <span class="progress"><span th:style="|width:${progress}%|"></span></span><strong th:text="|${progress}%|"></strong></span></div>
+        <p class="empty" th:if="${#lists.isEmpty(items)}">持ち物はまだありません。</p>
+        <ul class="check-2col" th:unless="${#lists.isEmpty(items)}">
+          <li th:each="it : ${items}"><input type="checkbox" disabled th:checked="${it.prepared}" th:id="|sh-${it.id}|"><label th:for="|sh-${it.id}|" th:text="|${it.name} ×${it.quantity}|"></label></li>
+        </ul>
+        <a class="more no-print" th:if="${mode == 'plan'}" th:href="@{/outings/{id}(id=${outing.id})} + '#items'">持ち物リストを開く ＞</a>
+      </section>
+
+      <div class="grid-2" style="margin:0">
+        <section class="panel">
+          <div class="panel-head"><h2><i class="ico i-flag"></i>やりたいことリスト</h2></div>
+          <p class="empty" th:if="${#lists.isEmpty(wishes)}">まだありません。</p>
+          <ul class="wish-list"><li th:each="w : ${wishes}" th:text="${w.content}"></li></ul>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2><i class="ico i-pen"></i>メモ</h2>
+            <a class="btn btn-outline btn-sm no-print" th:if="${mode == 'plan'}" th:href="@{/outings/{id}/edit(id=${outing.id})}"><i class="ico i-pen"></i>編集</a></div>
+          <p class="wish" th:text="${outing.memo ?: 'メモはまだありません。'}"></p>
+        </section>
+      </div>
+    </div>
+
+    <section class="panel" id="photos" style="margin-top:20px" th:if="${mode == 'memory' or (mode == 'shared' and !#lists.isEmpty(photos))}">
+      <div class="panel-head"><h2><i class="ico i-camera"></i>写真・動画</h2>
+        <span class="sub" th:text="|アップロードしてから${keepDays}日で自動的に消えます（${#lists.size(photos)}／${maxPhotos}件）|"></span></div>
+      <th:block th:if="${mode == 'memory'}">
+        <p class="done-msg" th:if="${uploadDone}" role="status">アップロードしました</p>
+        <ul class="flash-error" th:if="${uploadErrors}" style="padding-left:2em"><li th:each="e : ${uploadErrors}" th:text="${e}"></li></ul>
+        <form class="upload-box no-print" method="post" enctype="multipart/form-data" th:action="@{/outings/{id}/photos(id=${outing.id})}">
+          <label for="files"><strong>写真・動画を選ぶ</strong>（jpg・png・gif・webp・mp4・mov・webm／1つ50MBまで）</label>
+          <input type="file" id="files" name="files" multiple accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm">
+          <button class="btn btn-sm" type="submit"><i class="ico i-download" style="transform:rotate(180deg)"></i>アップロード</button>
+          <p class="tpl-note">大切な写真は、消える前に「保存」から自分のスマホやパソコンに保存してください。</p>
+        </form>
+      </th:block>
+      <p class="empty" th:if="${#lists.isEmpty(photos)}">まだ写真・動画はありません。</p>
+      <div class="photo-grid">
+        <figure class="photo-item" th:each="ph : ${photos}">
+          <video th:if="${ph.video}" controls preload="metadata" th:src="@{/photos/{t}(t=${ph.token})}"></video>
+          <a th:unless="${ph.video}" th:href="@{/photos/{t}(t=${ph.token})}" target="_blank" rel="noopener">
+            <img th:src="@{/photos/{t}(t=${ph.token})}" th:alt="${ph.originalName}" loading="lazy"></a>
+          <figcaption>
+            <span class="left" th:text="${ph.daysLeft() == 0} ? '今日消えます' : |あと${ph.daysLeft()}日で消えます|"></span>
+            <a class="link-btn" th:href="@{/photos/{t}(t=${ph.token})}" th:attr="download=${ph.originalName}">保存</a>
+            <form class="inline-form" th:if="${mode == 'memory'}" method="post" th:action="@{/outings/{id}/photos/{pid}/delete(id=${outing.id}, pid=${ph.id})}" data-confirm="この写真・動画を消しますか？">
+              <button class="link-btn" type="submit">消す</button></form>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <dialog class="modal" id="share-dialog" aria-labelledby="share-title" th:if="${mode != 'shared'}">
+      <div class="modal-head"><h2 id="share-title"><i class="ico i-share"></i>しおりを共有する</h2><button class="close-btn" type="button" data-close aria-label="閉じる">✕</button></div>
+      <p class="share-note" style="margin-top:0">このURLかQRコードを、一緒に行く人に送ってください。開いた人は、しおり<span th:if="${mode == 'memory'}">と写真・動画</span>を見ることができます（編集はできません）。</p>
+      <div class="share-url"><input type="text" id="share-link" readonly th:value="${shareUrl}" aria-label="共有用のURL"><button class="btn btn-sm" type="button" id="copy-link">コピー</button></div>
+      <p class="copied" id="copied" aria-live="polite"></p>
+      <div class="qr-box"><div id="qr"></div><small>スマホのカメラで読み取れます</small></div>
+    </dialog>
+  </div></main>
+</div>
+<div th:replace="~{fragments/layout :: landscape}"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" th:if="${mode != 'shared'}"></script>
+<script th:src="@{/js/odekake-ui.js}"></script>
+</body>
+</html>

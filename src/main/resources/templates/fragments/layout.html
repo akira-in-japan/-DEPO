@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<!-- 全画面で使う共通部品（head・ヘッダー・足元の風景） -->
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="|${title}｜おでかけDEPO|">おでかけDEPO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/odekake.css}">
+</head>
+<!-- 画面ごとに CSS を1つ足したいとき用（計画をつくる画面のカレンダーなど） -->
+<head th:fragment="headWithCss(title, extraCss)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="|${title}｜おでかけDEPO|">おでかけDEPO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="${extraCss}">
+  <link rel="stylesheet" th:href="@{/css/odekake.css}">
+</head>
+<body>
+
+<header class="site-header" th:fragment="header(active)">
+  <div class="inner">
+    <!-- ロゴ（画像。1倍・2倍、WebP と PNG） -->
+    <a class="site-logo" th:href="@{/}" aria-label="おでかけDEPO ホーム">
+      <picture>
+        <source type="image/webp" th:attr="srcset=|@{/images/logo/odekake-depo-logo.webp} 1x, @{/images/logo/odekake-depo-logo@2x.webp} 2x|">
+        <img th:src="@{/images/logo/odekake-depo-logo.png}" th:attr="srcset=|@{/images/logo/odekake-depo-logo.png} 1x, @{/images/logo/odekake-depo-logo@2x.png} 2x|"
+             width="431" height="150" alt="おでかけDEPO Outdoor &amp; Travel Goods">
+      </picture>
+    </a>
+    <nav class="global-nav" aria-label="メインメニュー">
+      <a th:href="@{/}" th:attr="aria-current=${active == 'home'} ? 'page' : null"><i class="ico i-home"></i><span>ホーム</span></a>
+      <a th:href="@{/outings}" th:attr="aria-current=${active == 'list'} ? 'page' : null"><i class="ico i-cal"></i><span>計画一覧</span></a>
+      <a th:href="@{/outings/new}" th:attr="aria-current=${active == 'new'} ? 'page' : null"><i class="ico i-plus"></i><span>計画をつくる</span></a>
+      <a th:href="@{/products}" th:attr="aria-current=${active == 'items'} ? 'page' : null"><i class="ico i-bag"></i><span>DEPO商品一覧</span></a>
+    </nav>
+    <!-- 特別枠：マイページ（仮。ニックネームだけ） -->
+    <a class="mypage-btn" th:href="@{/mypage}" th:attr="aria-current=${active == 'mypage'} ? 'page' : null">
+      <i class="ico i-people"></i><span th:text="${nickname != null and nickname != ''} ? |${nickname}さん| : 'マイページ'">マイページ</span></a>
+  </div>
+</header>
+
+<div class="landscape" aria-hidden="true" th:fragment="landscape"></div>
+
+<!-- 見出しの横に置く、でぽんた（depota-intro）。title：見出しの文字 -->
+<div th:fragment="depotaTitle(title)" class="plan-title-row">
+  <picture class="depota-intro">
+    <source type="image/webp" th:attr="srcset=|@{/images/depota/depota-intro.webp} 1x, @{/images/depota/depota-intro@2x.webp} 2x|">
+    <img th:src="@{/images/depota/depota-intro.png}" th:attr="srcset=|@{/images/depota/depota-intro.png} 1x, @{/images/depota/depota-intro@2x.png} 2x|"
+         alt="" width="115" height="110">
+  </picture>
+  <h1 class="plan-title"><span class="brush" th:text="${title}">見出し</span></h1>
+</div>
+</body>
+</html>

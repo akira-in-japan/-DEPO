@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- でぽんた（狸のキャラクター）。lines：最初から順番に話すセリフのリスト -->
+<!-- 絵は static/images/tanuki の6枚（normal・talk・happy・jump-start・jump-air・jump-air2）。切りかえと動きは odekake-ui.js と CSS -->
+<div th:fragment="tanuki(lines)" class="tanuki-box" data-tanuki th:attr="data-base=@{/images/tanuki/}">
+  <!-- セリフの一覧（画面には出さず、JavaScript が読む） -->
+  <ul class="tanuki-lines" hidden><li th:each="l : ${lines}" th:text="${l}"></li></ul>
+  <p class="tanuki-bubble" aria-live="polite"><span class="tanuki-text" th:text="${lines[0]}">こんにちは！</span></p>
+  <button type="button" class="tanuki-btn" aria-label="でぽんたをタップすると、ジャンプして次のお話をします">
+    <span class="tanuki-stage">
+      <span class="tanuki-shadow" aria-hidden="true"></span>
+      <img class="tanuki-img" th:src="@{/images/tanuki/normal.webp}" alt="" width="360" height="320" decoding="async">
+    </span>
+  </button>
+</div>
+</body>
+</html>
